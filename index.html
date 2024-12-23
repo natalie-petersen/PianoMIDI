@@ -4,11 +4,34 @@
 <head>
     <meta charset="UTF-8">
     <title>MIDI Piano</title>
+    <style>
+        .piano-container {
+            position: relative;
+            width: 2500px;
+            height: auto;
+        }
+        .piano-container img {
+            width: 100%;
+            height: auto;
+        }
+
+        .piano-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 </head>
 
 <body>
     <h1>MIDI Piano</h1>
-    <p>Connect your MIDI keyboard and play!</p>
+    <div class="piano-container">
+        <img src="piano.png" alt="Piano Keyboard">
+        <canvas id="pianoCanvas" class="piano-canvas" width="800" height="200">
+        </canvas>
+    </div>
     <script type="module" src="piano.js" defer></script>
 </body>
 
