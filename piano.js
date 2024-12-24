@@ -12,9 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = canvas.getContext('2d');
     const bkwMod = 0.53; //ratio for width
     const bkhMod = 0.67; //ratio for height
-    const whiteKeyWidth = 16.65;
+    const whiteKeyWidth = 16.66;
     const blackKeyWidth = whiteKeyWidth * bkwMod; //adjust
-    const whiteKeyHeight = 195;
+    const whiteKeyHeight = 197;
     const blackKeyHeight = whiteKeyHeight * bkhMod;
 
     canvas.addEventListener('click', handleCanvasClick);
@@ -52,9 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const rect = canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top; // Determine which key is clicked based on x-coordinate 
-        const pixel = ctx.getImageData(x, y, 1, 1).data;
-        console.log('(' + x + "," + y + ")");
-        console.log(pixel);
         const note = determineNoteFromPosition(x, y);
         if (note !== null) {
             playNote(note);
@@ -90,8 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const blackKeys = [1, 3, 6, 8, 10]; // C#, D#, F#, G#, A# 
             // Offsets based on white key positions
             const blackOffsets = { 1: 1.75, 3: 2.25, 6: 3.6, 8: 3.9, 10: 4.15 };
-            const whiteKeyX = Math.floor(note / 12) * 7 * whiteKeyWidth + blackKeys.indexOf(noteMod) * whiteKeyWidth + whiteKeyWidth * bkwMod * blackOffsets[noteMod];
-            keyX += whiteKeyX;
+            const blackKeyX = Math.floor(note / 12) * 7 * whiteKeyWidth + blackKeys.indexOf(noteMod) * whiteKeyWidth + whiteKeyWidth * bkwMod * blackOffsets[noteMod];
+            keyX += blackKeyX;
         }
         if (isOn) {
             ctx.fillStyle = 'rgba(0,0,255,0.5'; //highlight color
@@ -114,38 +111,61 @@ document.addEventListener('DOMContentLoaded', () => {
     function determineNoteFromPosition(x, y) {
         const whiteKeys = [0, 2, 4, 5, 7, 9, 11]; // C, D, E, F, G, A, B (MIDI note % 12) 
         const blackKeys = [1, 3, 6, 8, 10]; // C#, D#, F#, G#, A# (MIDI note % 12) 
-        const blackOffsets = { 1: 30, 3: 48, 6: 28, 8: 3.9, 10: 4.15 };
+        const blackOffsets = { 1: 30, 3: 48, 6: 28, 8: 36, 10: 47 };
         const wkWidth = 52;
         const bkWidth = wkWidth * bkwMod;
-        const bkHeight = whiteKeyHeight * bkhMod;
-        const img = new Image(); img.src = 'piano.png'; img.onload = () => { //temp
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        };
-            console.log(ctx);
-            console.log(ctx.getImageData(x, y, 1, 1).data);
-            for (let octave = 0; octave < 9; octave++) { // Assuming 9 octaves 
-                if (y <= bkHeight) {
-                    console.log('searching for black keys');
-                    for (let i = 0; i < blackKeys.length; i++) {
-                        const keyX = (octave * 7 * wkWidth) + blackOffsets[blackKeys[i] * wkWidth]; //this is the problem, I think
-                        console.log(x + ',' + keyX);
-                        if (x >= keyX && x < keyX + bkWidth) {
-                            const note = octave * 12 + blackKeys[i];
-                            console.log(keyX + " and " + octave + "so " + note);
-                            return note;
+        const bkHeight = whiteKeyHeight * bkhMod*1.4;
+
+        for (let octave = 0; octave < 9; octave++) { // Assuming 9 octaves 
+
+            for (let i = 0; i < whiteKeys.length; i++) {
+                const keyX = (octave * 7 * wkWidth) + (i * wkWidth);
+
+                if (x >= keyX && x < keyX + wkWidth) {
+                    const note = octave * 12 + whiteKeys[i];
+                    console.log(keyX + " and " + octave + "so " + note);
+
+                    if (y <= bkHeight) { //search for black keys
+                        console.log('searching for black keys: ' + x);
+                        const noteVal = whiteKeys[i];
+                        console.log('notVal = '+noteVal);
+                        if (noteVal != 0 && noteVal != 5) { //anything except B and E (they don't have right black keys)
+                            //check left ONLY
+                            console.log('searching left');
+                            const invOffset = bkWidth - blackOffsets[noteVal - 1];
+                            const bkX = keyX - invOffset - bkWidth;
+                            if (x >= bkX && x < bkX + bkWidth) {
+                                console.log('found BLACK KEY!!!');
+                                return (note - 1);
+                            }
                         }
+                        if (noteVal != 4 && noteVal != 11) { //anything except C and F (they don't have left black keys)
+                            //check right ONLY
+                            console.log('searching right ' + noteVal + " " + blackOffsets[noteVal + 1]);
+                            const bkX = keyX + blackOffsets[noteVal + 1];
+                            console.log(bkX);
+                            if (x >= bkX && x < (bkX + bkWidth)) {
+                                console.log('found BLACK KEY!!!');
+                                return (note + 1);
+                            }
+                        }
+                        // for (let i = 0; i < blackKeys.length; i++) {
+                        //     var blackNote = note + 1; //black note should be one above the white key closest to it on the right
+                        //     console.log(closestWK + " " + i + " " + blackOffsets[blackKeys[i]])
+                        //     const bkX = closestWK + blackOffsets[[blackKeys[i]]];
+                        //     console.log(x + ',' + bkX + " to " + (bkX + bkWidth));
+
+                        //     if (x >= bkX && x < bkX + bkWidth) {
+                        //         console.log(keyX + " and " + octave + "so " + note);
+                        //         return blackNote;
+                        //     }
+                        // }
+                        console.log('found no black keys :(');
                     }
-                    console.log('found no black keys :(');
+                    return note;
                 }
-                for (let i = 0; i < whiteKeys.length; i++) {
-                    const keyX = (octave * 7 * wkWidth) + (i * wkWidth);
-                    if (x >= keyX && x < keyX + wkWidth) {
-                        const note = octave * 12 + whiteKeys[i];
-                        console.log(keyX + " and " + octave + "so " + note);
-                        return note;
-                    }
-                }
-            } return null; // No key found 
-        }
+            }
+        } return null; // No key found 
     }
+}
 );
